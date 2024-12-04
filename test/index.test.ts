@@ -1,7 +1,187 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { pausableTimers } from '../src/index'
 
-describe('should', () => {
-  it('exported', () => {
-    expect(1).toEqual(1)
+describe('pausableTimers', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  describe('timeout mode', () => {
+    it('should execute callback after delay', () => {
+      const callback = vi.fn()
+      pausableTimers(callback, 100)
+      expect(callback).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(100)
+      expect(callback).toHaveBeenCalledTimes(1)
+    })
+
+    it('should pause and resume correctly', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100)
+
+      vi.advanceTimersByTime(50)
+      timer.pause()
+      vi.advanceTimersByTime(100)
+      expect(callback).not.toHaveBeenCalled()
+
+      timer.resume()
+      vi.advanceTimersByTime(49)
+      expect(callback).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(1)
+      expect(callback).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('interval mode', () => {
+    it('should execute callback repeatedly', () => {
+      const callback = vi.fn()
+      pausableTimers(callback, 100, { mode: 'interval' })
+
+      vi.advanceTimersByTime(250)
+      expect(callback).toHaveBeenCalledTimes(2)
+    })
+
+    it('should pause and resume interval correctly', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+
+      // 第一个周期
+      vi.advanceTimersByTime(150)
+      expect(callback).toHaveBeenCalledTimes(1)
+
+      // 暂停
+      timer.pause()
+      vi.advanceTimersByTime(200)
+      expect(callback).toHaveBeenCalledTimes(1)
+
+      // 恢复后的首次计时
+      timer.resume()
+      vi.advanceTimersByTime(100)
+      expect(callback).toHaveBeenCalledTimes(2)
+
+      // 恢复后的第二个周期开始
+      vi.advanceTimersByTime(100)
+      expect(callback).toHaveBeenCalledTimes(3)
+
+      // 再确认一个周期
+      vi.advanceTimersByTime(100)
+      expect(callback).toHaveBeenCalledTimes(4)
+    })
+
+    it('should resume interval with remaining time from last pause', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+
+      // 第一个周期执行
+      vi.advanceTimersByTime(100)
+      expect(callback).toHaveBeenCalledTimes(1)
+
+      // 在第二个周期的30ms时暂停
+      vi.advanceTimersByTime(30)
+      timer.pause()
+      vi.advanceTimersByTime(100)
+      expect(callback).toHaveBeenCalledTimes(1)
+
+      // 恢复后应该只需要剩余的70ms就触发回调
+      timer.resume()
+      vi.advanceTimersByTime(69)
+      expect(callback).toHaveBeenCalledTimes(1)
+      vi.advanceTimersByTime(1)
+      expect(callback).toHaveBeenCalledTimes(2)
+
+      // 之后恢复正常的100ms周期
+      vi.advanceTimersByTime(99)
+      expect(callback).toHaveBeenCalledTimes(2)
+      vi.advanceTimersByTime(1)
+      expect(callback).toHaveBeenCalledTimes(3)
+    })
+
+    it('should handle pause/resume after multiple intervals', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+
+      // 让它先运行3个完整周期
+      vi.advanceTimersByTime(300)
+      expect(callback).toHaveBeenCalledTimes(3)
+
+      // 在第4个周期的60ms时暂停
+      vi.advanceTimersByTime(60)
+      timer.pause()
+      vi.advanceTimersByTime(100)
+      expect(callback).toHaveBeenCalledTimes(3)
+
+      // 恢复后应该只需要40ms就触发第4次回调
+      timer.resume()
+      vi.advanceTimersByTime(39)
+      expect(callback).toHaveBeenCalledTimes(3)
+      vi.advanceTimersByTime(1)
+      expect(callback).toHaveBeenCalledTimes(4)
+
+      // 之后应该恢复正常100ms的周期
+      vi.advanceTimersByTime(99)
+      expect(callback).toHaveBeenCalledTimes(4)
+      vi.advanceTimersByTime(1)
+      expect(callback).toHaveBeenCalledTimes(5)
+    })
+  })
+
+  describe('edge cases', () => {
+    it('should handle multiple pause/resume calls', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100)
+
+      timer.pause()
+      timer.pause() // 重复暂停
+      timer.resume()
+      timer.resume() // 重复恢复
+
+      vi.advanceTimersByTime(100)
+      expect(callback).toHaveBeenCalledTimes(1)
+    })
+
+    it('should work with custom timer functions', () => {
+      const customSetTimeout = vi.fn().mockImplementation(setTimeout)
+      const customClearTimeout = vi.fn().mockImplementation(clearTimeout)
+
+      const callback = vi.fn()
+      pausableTimers(callback, 100, {
+        // @ts-expect-error 类型 "Mock<Procedure>" 中缺少属性 "__promisify__"，但类型 "typeof setTimeout" 中需要该属性。ts(2741)
+        setTimeout: customSetTimeout,
+        clearTimeout: customClearTimeout,
+      })
+
+      expect(customSetTimeout).toHaveBeenCalled()
+      vi.advanceTimersByTime(100)
+      expect(callback).toHaveBeenCalled()
+    })
+
+    it('should restart timer correctly', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100)
+
+      vi.advanceTimersByTime(50)
+      timer.restart()
+      vi.advanceTimersByTime(50)
+      expect(callback).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(50)
+      expect(callback).toHaveBeenCalledTimes(1)
+    })
+
+    it('should restart interval correctly', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+
+      vi.advanceTimersByTime(150)
+      expect(callback).toHaveBeenCalledTimes(1)
+      timer.restart()
+      vi.advanceTimersByTime(99)
+      expect(callback).toHaveBeenCalledTimes(1)
+      vi.advanceTimersByTime(1)
+      expect(callback).toHaveBeenCalledTimes(2)
+    })
   })
 })
