@@ -102,6 +102,27 @@ timer.clear()
 
 <!-- /automd -->
 
+## Advanced Usage
+
+Customize the timeout/interval power, like using [worker-timers](https://github.com/chrisguttandin/worker-timers)(A replacement for setInterval() and setTimeout() which works in unfocused windows.):
+
+```ts
+import { pausableTimers } from 'pausable-timers'
+import { clearInterval, clearTimeout, setInterval, setTimeout } from 'worker-timers'
+
+const timer = pausableTimers(() => {
+  /**
+   * Execute after 1 second
+   * 1s 后执行
+   */
+}, 1000, {
+  setTimeout,
+  setInterval,
+  clearTimeout,
+  clearInterval,
+})
+```
+
 <!-- automd:fetch url="gh:byronogis/.github/main/snippets/readme-contrib-node-pnpm.md" -->
 
 ## Contribution
