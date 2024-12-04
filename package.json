@@ -1,7 +1,7 @@
 {
   "name": "pausable-timers",
   "type": "module",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "packageManager": "pnpm@9.14.3",
   "description": "creating timers that can be paused and resumed.",
   "author": "Byron < byronogis@outlook.com>",
