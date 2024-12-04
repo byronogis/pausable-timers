@@ -183,5 +183,25 @@ describe('pausableTimers', () => {
       vi.advanceTimersByTime(1)
       expect(callback).toHaveBeenCalledTimes(2)
     })
+
+    it('should correctly report paused state', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100)
+
+      expect(timer.isPaused()).toBe(false)
+      timer.pause()
+      expect(timer.isPaused()).toBe(true)
+      timer.resume()
+      expect(timer.isPaused()).toBe(false)
+    })
+
+    it('should clear timer correctly', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100)
+
+      timer.clear()
+      vi.advanceTimersByTime(100)
+      expect(callback).not.toHaveBeenCalled()
+    })
   })
 })
