@@ -44,11 +44,20 @@ export function pausableTimers(
       paused = true
       clear()
       const elapsed = Date.now() - startTime
-      /**
-       * Remaining time is calculated based on the mode
-       * 统一使用取余,不需要区分模式
-       */
-      remaining = delay - (elapsed % delay)
+      if (mode === 'interval' && remaining !== delay) {
+        /**
+         * In interval mode, when paused during the first timeout after resume, directly calculate remaining time
+         * 在 interval 模式下，如果在恢复后的首次计时过程中暂停，直接计算剩余时间
+         */
+        remaining = remaining - elapsed
+      }
+      else {
+        /**
+         * Normal interval cycle or timeout mode
+         * 常规的 interval 周期或 timeout 模式
+         */
+        remaining = delay - (elapsed % delay)
+      }
     }
   }
 

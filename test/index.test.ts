@@ -127,6 +127,35 @@ describe('pausableTimers', () => {
       vi.advanceTimersByTime(1)
       expect(callback).toHaveBeenCalledTimes(5)
     })
+
+    it('should handle pause during resume timeout in interval mode', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+
+      // 第一个周期的50ms处暂停
+      vi.advanceTimersByTime(50)
+      timer.pause()
+      expect(callback).not.toHaveBeenCalled()
+
+      // 恢复后30ms再次暂停
+      timer.resume()
+      vi.advanceTimersByTime(30)
+      timer.pause()
+      expect(callback).not.toHaveBeenCalled()
+
+      // 恢复后应该只需要剩余的20ms就触发回调
+      timer.resume()
+      vi.advanceTimersByTime(19)
+      expect(callback).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(1)
+      expect(callback).toHaveBeenCalledTimes(1)
+
+      // 之后恢复正常的100ms周期
+      vi.advanceTimersByTime(99)
+      expect(callback).toHaveBeenCalledTimes(1)
+      vi.advanceTimersByTime(1)
+      expect(callback).toHaveBeenCalledTimes(2)
+    })
   })
 
   describe('edge cases', () => {
