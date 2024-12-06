@@ -59,6 +59,8 @@ timer.resume()
 timer.clear()
 timer.reset()
 timer.isPaused()
+timers.getRemainingTime()
+timer.isCompleted() // only for timeout mode
 ```
 
 <!-- /automd -->

@@ -28,11 +28,17 @@ export function pausableTimers(
   let startTime = Date.now() // milliseconds since epoch
   let remaining = delay // milliseconds
   let paused = false
+  /**
+   * Whether the timer has completed its task in **timeout** mode
+   * 定时器是否在 **timeout** 模式下完成了任务
+   */
+  let completed = false
 
   const _resetState = () => {
     startTime = Date.now()
     remaining = delay
     paused = false
+    completed = false
   }
 
   const _clear = (resetState: boolean = false) => {
@@ -50,6 +56,7 @@ export function pausableTimers(
   const _timeoutCallback = () => {
     callback()
     _clear(true)
+    completed = true
   }
 
   const _internalCallback = () => {
@@ -57,10 +64,21 @@ export function pausableTimers(
     _resetState()
   }
 
+  const _calculateRemaining = () => remaining - (Date.now() - startTime)
+
+  const getRemainingTime = () => {
+    if (mode === 'timeout' && completed)
+      return 0
+
+    return paused
+      ? remaining
+      : _calculateRemaining()
+  }
+
   const pause = () => {
     if (!paused && timerId !== null) {
       paused = true
-      remaining = remaining - (Date.now() - startTime)
+      remaining = _calculateRemaining()
       _clear()
     }
   }
@@ -101,8 +119,9 @@ export function pausableTimers(
     resume,
     clear: () => _clear(true),
     isPaused: () => paused,
+    isCompleted: () => completed,
     restart: () => _start(),
-
+    getRemainingTime,
   }
 }
 
@@ -157,8 +176,18 @@ interface PausableTimersReturns {
    */
   isPaused: () => boolean
   /**
+   * Get current completion state in timeout mode
+   * 获取 timeout 模式下的当前完成状态
+   */
+  isCompleted: () => boolean
+  /**
    * Restart the timer
    * 重新开始计时
    */
   restart: () => void
+  /**
+   * Get remaining time until the next task (milliseconds), 0 if completed in timeout mode
+   * 获取距下一次任务的剩余时间（毫秒）, 在 timeout 模式下完成时返回 0
+   */
+  getRemainingTime: () => number
 }

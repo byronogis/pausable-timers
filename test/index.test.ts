@@ -159,6 +159,14 @@ describe('pausableTimers', () => {
   })
 
   describe('edge cases', () => {
+    beforeEach(() => {
+      vi.setSystemTime(0)
+    })
+
+    afterEach(() => {
+      vi.setSystemTime(vi.getRealSystemTime())
+    })
+
     it('should handle multiple pause/resume calls', () => {
       const callback = vi.fn()
       const timer = pausableTimers(callback, 100)
@@ -231,6 +239,147 @@ describe('pausableTimers', () => {
       timer.clear()
       vi.advanceTimersByTime(100)
       expect(callback).not.toHaveBeenCalled()
+    })
+
+    it('should report remaining time correctly', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100)
+
+      vi.setSystemTime(0) // 重置系统时间以获得确定性的结果
+
+      // 初始状态
+      expect(timer.getRemainingTime()).toBe(100)
+
+      // 前进50ms
+      vi.advanceTimersByTime(50)
+      expect(timer.getRemainingTime()).toBe(50)
+
+      // 暂停状态
+      timer.pause()
+      expect(timer.getRemainingTime()).toBe(50)
+
+      // 清除后
+      timer.clear()
+      expect(timer.getRemainingTime()).toBe(100)
+    })
+
+    it('should report remaining time correctly in interval mode', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+
+      vi.setSystemTime(0) // 重置系统时间以获得确定性的结果
+
+      // 第一个间隔
+      vi.advanceTimersByTime(30)
+      expect(timer.getRemainingTime()).toBe(70)
+
+      // 暂停时
+      timer.pause()
+      expect(timer.getRemainingTime()).toBe(70)
+
+      // 恢复后
+      timer.resume()
+      vi.advanceTimersByTime(20)
+      expect(timer.getRemainingTime()).toBe(50)
+    })
+
+    it('should report remaining time correctly in interval mode after cycle completion', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+
+      // 完成一个周期
+      vi.advanceTimersByTime(100)
+      expect(callback).toHaveBeenCalledTimes(1)
+      expect(timer.getRemainingTime()).toBe(100)
+
+      // 第二个周期中途
+      vi.advanceTimersByTime(30)
+      expect(timer.getRemainingTime()).toBe(70)
+    })
+
+    it('should report correct remaining time after restart', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100)
+
+      vi.advanceTimersByTime(50)
+      expect(timer.getRemainingTime()).toBe(50)
+
+      timer.restart()
+      expect(timer.getRemainingTime()).toBe(100)
+
+      vi.advanceTimersByTime(30)
+      expect(timer.getRemainingTime()).toBe(70)
+    })
+
+    it('should maintain accurate remaining time during multiple pause/resume', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100)
+
+      vi.advanceTimersByTime(30)
+      timer.pause()
+      expect(timer.getRemainingTime()).toBe(70)
+
+      timer.resume()
+      vi.advanceTimersByTime(20)
+      timer.pause()
+      expect(timer.getRemainingTime()).toBe(50)
+
+      vi.advanceTimersByTime(100) // 暂停期间时间不应该改变
+      expect(timer.getRemainingTime()).toBe(50)
+    })
+
+    it('should report zero remaining time after timeout completion', () => {
+      const callback = vi.fn()
+      const timer = pausableTimers(callback, 100)
+
+      vi.advanceTimersByTime(100)
+      expect(callback).toHaveBeenCalledTimes(1)
+      expect(timer.getRemainingTime()).toBe(0)
+
+      vi.advanceTimersByTime(50)
+      expect(timer.getRemainingTime()).toBe(0)
+    })
+
+    describe('completion state', () => {
+      it('should report completion state correctly in timeout mode', () => {
+        const callback = vi.fn()
+        const timer = pausableTimers(callback, 100)
+
+        expect(timer.isCompleted()).toBe(false)
+        vi.advanceTimersByTime(100)
+        expect(timer.isCompleted()).toBe(true)
+      })
+
+      it('should reset completion state after restart', () => {
+        const callback = vi.fn()
+        const timer = pausableTimers(callback, 100)
+
+        vi.advanceTimersByTime(100)
+        expect(timer.isCompleted()).toBe(true)
+
+        timer.restart()
+        expect(timer.isCompleted()).toBe(false)
+      })
+
+      it('should always report false in interval mode', () => {
+        const callback = vi.fn()
+        const timer = pausableTimers(callback, 100, { mode: 'interval' })
+
+        expect(timer.isCompleted()).toBe(false)
+        vi.advanceTimersByTime(300) // 执行多个周期
+        expect(timer.isCompleted()).toBe(false)
+      })
+
+      it('should reset completion state after clear', () => {
+        const callback = vi.fn()
+        const timer = pausableTimers(callback, 100)
+
+        vi.advanceTimersByTime(100)
+        expect(timer.isCompleted()).toBe(true)
+
+        timer.clear()
+        expect(timer.isCompleted()).toBe(false)
+      })
     })
   })
 })
