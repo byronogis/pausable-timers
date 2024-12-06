@@ -29,7 +29,13 @@ export function pausableTimers(
   let remaining = delay // milliseconds
   let paused = false
 
-  const clear = () => {
+  const _resetState = () => {
+    startTime = Date.now()
+    remaining = delay
+    paused = false
+  }
+
+  const _clear = (resetState: boolean = false) => {
     if (timerId !== null) {
       if (mode === 'timeout')
         clearTimeout(timerId)
@@ -37,27 +43,25 @@ export function pausableTimers(
         clearInterval(timerId)
       timerId = null
     }
+
+    resetState && _resetState()
+  }
+
+  const _timeoutCallback = () => {
+    callback()
+    _clear(true)
+  }
+
+  const _internalCallback = () => {
+    callback()
+    _resetState()
   }
 
   const pause = () => {
     if (!paused && timerId !== null) {
       paused = true
-      clear()
-      const elapsed = Date.now() - startTime
-      if (mode === 'interval' && remaining !== delay) {
-        /**
-         * In interval mode, when paused during the first timeout after resume, directly calculate remaining time
-         * 在 interval 模式下，如果在恢复后的首次计时过程中暂停，直接计算剩余时间
-         */
-        remaining = remaining - elapsed
-      }
-      else {
-        /**
-         * Normal interval cycle or timeout mode
-         * 常规的 interval 周期或 timeout 模式
-         */
-        remaining = delay - (elapsed % delay)
-      }
+      remaining = remaining - (Date.now() - startTime)
+      _clear()
     }
   }
 
@@ -67,42 +71,39 @@ export function pausableTimers(
       startTime = Date.now()
       if (mode === 'interval') {
         timerId = setTimeout(() => {
-          callback()
+          _internalCallback()
           /**
            * Remaining time is calculated based on the mode
            * 检查是否在回调期间被暂停
            */
           if (!paused)
-            timerId = setInterval(callback, delay)
+            timerId = setInterval(_internalCallback, delay)
         }, remaining)
       }
       else {
-        timerId = setTimeout(callback, remaining)
+        timerId = setTimeout(_timeoutCallback, remaining)
       }
     }
   }
 
-  const isPaused = () => paused
+  const _start = () => {
+    _clear(true)
 
-  const start = () => {
-    clear()
-    paused = false
-    remaining = delay
-    startTime = Date.now()
-    if (mode === 'timeout')
-      timerId = setTimeout(callback, remaining)
-    else
-      timerId = setInterval(callback, delay)
+    timerId = mode === 'timeout'
+      ? setTimeout(_timeoutCallback, delay)
+      : setInterval(_internalCallback, delay)
   }
 
-  const restart = () => {
-    clear()
-    start()
+  _start()
+
+  return {
+    pause,
+    resume,
+    clear: () => _clear(true),
+    isPaused: () => paused,
+    restart: () => _start(),
+
   }
-
-  start()
-
-  return { pause, resume, clear, isPaused, restart }
 }
 
 interface PausableTimersOptions {
