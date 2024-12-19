@@ -57,7 +57,7 @@ const timer = pausableTimers(() => {
 timer.pause()
 timer.resume()
 timer.clear()
-timer.reset()
+timer.restart()
 timer.isPaused()
 timers.getRemainingTime()
 timer.isCompleted() // only for timeout mode

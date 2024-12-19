@@ -44,6 +44,9 @@
   "scripts": {
     "build": "unbuild",
     "dev": "unbuild --stub",
+    "playground:dev": "vite playground",
+    "playground:build": "vite build playground",
+    "playground:preview": "vite preview playground",
     "lint": "eslint .",
     "prepublishOnly": "automd && nr build",
     "release": "bumpp && pnpm publish",
