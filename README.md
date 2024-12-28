@@ -45,13 +45,14 @@ deno install pausable-timers
 ```ts
 import { pausableTimers } from 'pausable-timers'
 
-const timer = pausableTimers(() => {
-  /**
-   * Execute after 1 second
-   * 1s 后执行
-   */
-}, 1000, {
+const timer = pausableTimers({
   mode: 'interval', // 'timeout' | 'interval'
+  args: [() => {
+    /**
+     * Execute after 1 second
+     * 1s 后执行
+     */
+  }, 1000]
 })
 
 timer.pause()
@@ -73,16 +74,17 @@ Customize the timeout/interval power, like using [worker-timers](https://github.
 import { pausableTimers } from 'pausable-timers'
 import { clearInterval, clearTimeout, setInterval, setTimeout } from 'worker-timers'
 
-const timer = pausableTimers(() => {
-  /**
-   * Execute after 1 second
-   * 1s 后执行
-   */
-}, 1000, {
+const timer = pausableTimers({
   setTimeout,
   setInterval,
   clearTimeout,
   clearInterval,
+  args: [() => {
+    /**
+     * Execute after 1 second
+     * 1s 后执行
+     */
+  }, 1000,]
 })
 ```
 

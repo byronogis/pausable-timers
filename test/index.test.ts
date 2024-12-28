@@ -13,15 +13,26 @@ describe('pausableTimers', () => {
   describe('timeout mode', () => {
     it('should execute callback after delay', () => {
       const callback = vi.fn()
-      pausableTimers(callback, 100)
+      pausableTimers({ args: [callback, 100] })
       expect(callback).not.toHaveBeenCalled()
       vi.advanceTimersByTime(100)
       expect(callback).toHaveBeenCalledTimes(1)
     })
 
+    it('should pass parameters to callback correctly', () => {
+      const callback = vi.fn()
+      pausableTimers({
+        args: [callback, 100, 'test', 123],
+      })
+      vi.advanceTimersByTime(100)
+      expect(callback).toHaveBeenCalledWith('test', 123)
+    })
+
     it('should pause and resume correctly', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100)
+      const timer = pausableTimers({
+        args: [callback, 100],
+      })
 
       vi.advanceTimersByTime(50)
       timer.pause()
@@ -39,15 +50,33 @@ describe('pausableTimers', () => {
   describe('interval mode', () => {
     it('should execute callback repeatedly', () => {
       const callback = vi.fn()
-      pausableTimers(callback, 100, { mode: 'interval' })
+      pausableTimers({
+        args: [callback, 100],
+        mode: 'interval',
+      })
 
       vi.advanceTimersByTime(250)
       expect(callback).toHaveBeenCalledTimes(2)
     })
 
+    it('should execute callback repeatedly with parameters', () => {
+      const callback = vi.fn()
+      pausableTimers({
+        args: [callback, 100, 'test', 123],
+        mode: 'interval',
+      })
+
+      vi.advanceTimersByTime(250)
+      expect(callback).toHaveBeenCalledTimes(2)
+      expect(callback).toHaveBeenCalledWith('test', 123)
+    })
+
     it('should pause and resume interval correctly', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+      const timer = pausableTimers({
+        args: [callback, 100],
+        mode: 'interval',
+      })
 
       // 第一个周期
       vi.advanceTimersByTime(150)
@@ -74,7 +103,10 @@ describe('pausableTimers', () => {
 
     it('should resume interval with remaining time from last pause', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+      const timer = pausableTimers({
+        args: [callback, 100],
+        mode: 'interval',
+      })
 
       // 第一个周期执行
       vi.advanceTimersByTime(100)
@@ -102,7 +134,10 @@ describe('pausableTimers', () => {
 
     it('should handle pause/resume after multiple intervals', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+      const timer = pausableTimers({
+        args: [callback, 100],
+        mode: 'interval',
+      })
 
       // 让它先运行3个完整周期
       vi.advanceTimersByTime(300)
@@ -130,7 +165,10 @@ describe('pausableTimers', () => {
 
     it('should handle pause during resume timeout in interval mode', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+      const timer = pausableTimers({
+        args: [callback, 100],
+        mode: 'interval',
+      })
 
       // 第一个周期的50ms处暂停
       vi.advanceTimersByTime(50)
@@ -169,7 +207,9 @@ describe('pausableTimers', () => {
 
     it('should handle multiple pause/resume calls', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100)
+      const timer = pausableTimers({
+        args: [callback, 100],
+      })
 
       timer.pause()
       timer.pause() // 重复暂停
@@ -185,7 +225,8 @@ describe('pausableTimers', () => {
       const customClearTimeout = vi.fn().mockImplementation(clearTimeout)
 
       const callback = vi.fn()
-      pausableTimers(callback, 100, {
+      pausableTimers({
+        args: [callback, 100],
         // @ts-expect-error 类型 "Mock<Procedure>" 中缺少属性 "__promisify__"，但类型 "typeof setTimeout" 中需要该属性。ts(2741)
         setTimeout: customSetTimeout,
         clearTimeout: customClearTimeout,
@@ -198,7 +239,9 @@ describe('pausableTimers', () => {
 
     it('should restart timer correctly', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100)
+      const timer = pausableTimers({
+        args: [callback, 100],
+      })
 
       vi.advanceTimersByTime(50)
       timer.restart()
@@ -210,7 +253,10 @@ describe('pausableTimers', () => {
 
     it('should restart interval correctly', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+      const timer = pausableTimers({
+        args: [callback, 100],
+        mode: 'interval',
+      })
 
       vi.advanceTimersByTime(150)
       expect(callback).toHaveBeenCalledTimes(1)
@@ -223,7 +269,9 @@ describe('pausableTimers', () => {
 
     it('should correctly report paused state', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100)
+      const timer = pausableTimers({
+        args: [callback, 100],
+      })
 
       expect(timer.isPaused()).toBe(false)
       timer.pause()
@@ -234,7 +282,9 @@ describe('pausableTimers', () => {
 
     it('should clear timer correctly', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100)
+      const timer = pausableTimers({
+        args: [callback, 100],
+      })
 
       timer.clear()
       vi.advanceTimersByTime(100)
@@ -243,7 +293,9 @@ describe('pausableTimers', () => {
 
     it('should report remaining time correctly', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100)
+      const timer = pausableTimers({
+        args: [callback, 100],
+      })
 
       vi.setSystemTime(0) // 重置系统时间以获得确定性的结果
 
@@ -265,7 +317,10 @@ describe('pausableTimers', () => {
 
     it('should report remaining time correctly in interval mode', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+      const timer = pausableTimers({
+        args: [callback, 100],
+        mode: 'interval',
+      })
 
       vi.setSystemTime(0) // 重置系统时间以获得确定性的结果
 
@@ -285,7 +340,10 @@ describe('pausableTimers', () => {
 
     it('should report remaining time correctly in interval mode after cycle completion', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100, { mode: 'interval' })
+      const timer = pausableTimers({
+        args: [callback, 100],
+        mode: 'interval',
+      })
 
       // 完成一个周期
       vi.advanceTimersByTime(100)
@@ -299,7 +357,9 @@ describe('pausableTimers', () => {
 
     it('should report correct remaining time after restart', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100)
+      const timer = pausableTimers({
+        args: [callback, 100],
+      })
 
       vi.advanceTimersByTime(50)
       expect(timer.getRemainingTime()).toBe(50)
@@ -313,7 +373,9 @@ describe('pausableTimers', () => {
 
     it('should maintain accurate remaining time during multiple pause/resume', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100)
+      const timer = pausableTimers({
+        args: [callback, 100],
+      })
 
       vi.advanceTimersByTime(30)
       timer.pause()
@@ -330,7 +392,9 @@ describe('pausableTimers', () => {
 
     it('should report zero remaining time after timeout completion', () => {
       const callback = vi.fn()
-      const timer = pausableTimers(callback, 100)
+      const timer = pausableTimers({
+        args: [callback, 100],
+      })
 
       vi.advanceTimersByTime(100)
       expect(callback).toHaveBeenCalledTimes(1)
@@ -343,7 +407,9 @@ describe('pausableTimers', () => {
     describe('completion state', () => {
       it('should report completion state correctly in timeout mode', () => {
         const callback = vi.fn()
-        const timer = pausableTimers(callback, 100)
+        const timer = pausableTimers({
+          args: [callback, 100],
+        })
 
         expect(timer.isCompleted()).toBe(false)
         vi.advanceTimersByTime(100)
@@ -352,7 +418,9 @@ describe('pausableTimers', () => {
 
       it('should reset completion state after restart', () => {
         const callback = vi.fn()
-        const timer = pausableTimers(callback, 100)
+        const timer = pausableTimers({
+          args: [callback, 100],
+        })
 
         vi.advanceTimersByTime(100)
         expect(timer.isCompleted()).toBe(true)
@@ -363,7 +431,10 @@ describe('pausableTimers', () => {
 
       it('should always report false in interval mode', () => {
         const callback = vi.fn()
-        const timer = pausableTimers(callback, 100, { mode: 'interval' })
+        const timer = pausableTimers({
+          args: [callback, 100],
+          mode: 'interval',
+        })
 
         expect(timer.isCompleted()).toBe(false)
         vi.advanceTimersByTime(300) // 执行多个周期
@@ -372,7 +443,9 @@ describe('pausableTimers', () => {
 
       it('should reset completion state after clear', () => {
         const callback = vi.fn()
-        const timer = pausableTimers(callback, 100)
+        const timer = pausableTimers({
+          args: [callback, 100],
+        })
 
         vi.advanceTimersByTime(100)
         expect(timer.isCompleted()).toBe(true)

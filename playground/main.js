@@ -93,25 +93,24 @@ function startTimer() {
   }
 
   elements.statusText.textContent = ''
-  timer = pausableTimers(() => {
-    if (mode === 'timeout') {
-      cancelAnimationFrame(animationFrameId)
-      updateProgress(0, delay)
-      elements.statusText.textContent = 'Completed!'
-      updateButtons(false)
-    }
-    else {
-      // 在 interval 模式下，先取消动画帧
-      cancelAnimationFrame(animationFrameId)
-      // 立即重置进度条到 100%（无动画）
-      updateProgress(delay, delay)
-      // 在 interval 模式下添加循环次数显示
-      cycleCount++
-      elements.statusText.textContent = `Cycle ${cycleCount}`
-      // 立即开始新的倒计时（有动画）
-      requestAnimationFrame(() => animate(delay))
-    }
-  }, delay, { mode })
+  timer = pausableTimers({
+    args: [() => {
+      if (mode === 'timeout') {
+        cancelAnimationFrame(animationFrameId)
+        updateProgress(0, delay)
+        elements.statusText.textContent = 'Completed!'
+        updateButtons(false)
+      }
+      else {
+        cancelAnimationFrame(animationFrameId)
+        updateProgress(delay, delay)
+        cycleCount++
+        elements.statusText.textContent = `Cycle ${cycleCount}`
+        requestAnimationFrame(() => animate(delay))
+      }
+    }, delay],
+    mode,
+  })
 
   updateButtons(true)
   // 启动时也应用相同的逻辑

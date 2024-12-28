@@ -4,17 +4,11 @@
  * Creates a pausable timer that can be used as either a timeout or interval
  * 创建一个可暂停的定时器，可用作超时或间隔计时器
  *
- * @param callback - Function to be executed when the timer triggers
- *                  定时器触发时执行的函数
- * @param delay - Delay in milliseconds before the callback is executed
- *               回调函数执行前的延迟时间（毫秒）
  * @param options - Configuration options for the timer
  *                 定时器的配置选项
  */
-export function pausableTimers(
-  callback: () => void,
-  delay: number, // milliseconds
-  options: PausableTimersOptions = {},
+export function pausableTimers<T extends any[] = any[]>(
+  options: PausableTimersOptions<T>,
 ): PausableTimersReturns {
   const {
     mode = 'timeout',
@@ -22,7 +16,10 @@ export function pausableTimers(
     setInterval = globalThis.setInterval,
     clearTimeout = globalThis.clearTimeout,
     clearInterval = globalThis.clearInterval,
+    args,
   } = options
+
+  const [callback, delay, ...restArgs] = args
 
   let timerId: ReturnType<typeof setTimeout> | null = null
   let startTime = Date.now() // milliseconds since epoch
@@ -54,13 +51,13 @@ export function pausableTimers(
   }
 
   const _timeoutCallback = () => {
-    callback()
+    callback(...restArgs)
     _clear(true)
     completed = true
   }
 
   const _internalCallback = () => {
-    callback()
+    callback(...restArgs)
     _resetState()
   }
 
@@ -125,7 +122,17 @@ export function pausableTimers(
   }
 }
 
-interface PausableTimersOptions {
+interface PausableTimersOptions<T extends any[] = any[]> {
+  /**
+   * Timer arguments array
+   * 计时器参数数组，第一个参数为必传的回调函数，第二个参数为延迟时间，后续为可选的泛型参数数组
+   * 如果使用自定义计时器，参数需要与自定义计时器的参数定义保持一致
+   * @example
+   * - [() => console.log('test'), 0]  // 立即执行
+   * - [() => console.log('test'), 1000]  // 延迟1秒
+   * - [(name, age) => console.log(`${name}: ${age}`), 1000, 'World', 18]  // 带类型的参数
+   */
+  args: [handler: (...args: T) => void, delay: number, ...args: T]
   /**
    * Timer mode: 'timeout' or 'interval'
    * 定时器模式：'timeout' 或 'interval'
